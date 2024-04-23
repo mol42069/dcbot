@@ -4,6 +4,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.GenericEvent;
@@ -16,15 +17,20 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
 public class Bot extends ListenerAdapter
 {
 
-    public boolean on;
-    public String prefix;
-    private BanButtons banmenu;
+    public boolean on = false;
+    public char prefix = '!';
+    private BanButtons banMenu;
+    private com.kantenkugel.discordBot.Commands commands;
+
+    private List<Role> commandPermissions = new ArrayList<>();
+
     public static void main(String[] args)
     {
 
@@ -50,30 +56,65 @@ public class Bot extends ListenerAdapter
         Message message = event.getMessage();
         String content = message.getContentRaw();
 
-        if (content.equals("!start")){
+        // TODO: following has to replaced so we can use multiple-letter prefixes.
+        if(content.charAt(0) != this.prefix){return;}
+
+
+
+        if (content.equals("!start") && !this.on){
             this.on = true;
-            this.prefix = "!";
-            this.banmenu = new BanButtons();
+            this.prefix = '!';
+            this.banMenu = new BanButtons();
+            this.commands = new com.kantenkugel.discordBot.Commands();
+            // TODO: WE NEED TO GET THESE PERMISSIONS FROM THE WEBSITE.
+            this.commandPermissions.add(message.getGuild().getRolesByName("Besserer-Mensch", true).getFirst());
+
             message.delete().queue();
             event.getJDA().getGuilds().forEach(guild->{
                 guild.updateCommands().addCommands(
                         Commands.slash("echo", "Repeats messages back to you.")
                                 .addOption(OptionType.STRING, "content", "The message to repeat."),
-                        Commands.slash("clear", "Clears all messages in this channel")
+                        Commands.slash("clear", "Clears all messages in this channel"),
+                        Commands.slash("ban", "Clears all messages in this channel")
+                                .addOption(OptionType.USER, "user", "which user")
                 ).queue();
             });
 
 
         }
-        else if(content.equals("!stop")){
-            this.on = false;
-            message.delete().queue();
+        boolean allowed = false;
+        for(Role role : message.getMember().getRoles()){
+            if(this.commandPermissions.contains(role)){
+                allowed = true;
+            }
         }
-        else if(content.contains("!ban")){
+        if(!allowed) return;
 
-            banmenu.BanButtons(event);
+
+        String command = content.split(" ")[0];
+        System.out.println(command);
+        switch(command){
+            case "!purge":
+                this.commands.purge(event);
+                break;
+
+            case "!ban":
+                banMenu.BanButtons(event);
+                break;
+
+            case "!stop":
+                this.on = false;
+                message.delete().queue();
+                break;
+
+            default:
+                break;
+
 
         }
+
+
+
         if(!this.on){return;}
 
         if (event.isFromType(ChannelType.PRIVATE))

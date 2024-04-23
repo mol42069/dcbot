@@ -28,10 +28,11 @@ public class BanButtons extends ListenerAdapter {
     Member member;
 
     public void BanButtons(MessageReceivedEvent event) {
-        event.getMessage().reply("ClickButtons:")
-                    .addActionRow(
-                Button.primary("ban", "BAN"), // Button with only a label
-                Button.success("kick", "KICK")) // Button with only an emoji
+        Message mess = event.getMessage();
+        event.getMessage().reply("User: " + mess.getMentions().getUsers().get(0).getEffectiveName())
+                .addActionRow(
+                        Button.primary("ban", "BAN"), // Button with only a label
+                        Button.success("kick", "KICK")) // Button with only an emoji
                 .queue();
     }
     @Override
@@ -75,7 +76,73 @@ public class BanButtons extends ListenerAdapter {
                 throw new RuntimeException(e);
             } catch (ExecutionException e) {
                 throw new RuntimeException(e);
-            }        }
+            }
+        } else if (event.getComponentId().equals("banSlash")) {
+
+            UserSnowflake us = User.fromId(Long.parseLong(event.getMessage().getContentRaw().split(" ")[2]));
+
+                // TODO: HERE WE WANT TO EDIT THE MESSAGE SO WE ASK FOR A REASON.
+
+
+            guild.ban(us, 1, TimeUnit.SECONDS).queue();
+
+                // TODO: HERE WE WANT TO CREATE AN EMBED WHICH SHOWS THE BAN.
+                // for now i delete the message.
+
+            mess.get(0).delete().queue();
+
+
+        } else if (event.getComponentId().equals("kickSlash")) {
+
+
+            UserSnowflake us = User.fromId(Long.parseLong(event.getMessage().getContentRaw().split(" ")[2]));
+            guild.kick(us).queue();
+
+                // for now i delete the message.
+            mess.get(0).delete().queue();
+
+
+
+        }else if (event.getComponentId().equals("ban")) {
+
+            try {
+                System.out.println(event.getMessage().getContentRaw().split(" ")[2]);
+                mess = event.getChannel().getIterableHistory().takeAsync(2)
+                        .thenApply(list -> list.stream().collect(Collectors.toList())).get();
+                assert member != null;
+                UserSnowflake us = User.fromId(Long.parseLong(event.getMessage().getContentRaw().split(" ")[2]));
+
+                // TODO: HERE WE WANT TO EDIT THE MESSAGE SO WE ASK FOR A REASON.
+
+
+                guild.ban(us, 1, TimeUnit.SECONDS).queue();
+
+                // TODO: HERE WE WANT TO CREATE AN EMBED WHICH SHOWS THE BAN.
+                // for now i delete the message.
+                mess.get(0).delete().queue();
+
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+
+        } else if (event.getComponentId().equals("kick")) {
+            try {
+                mess = event.getChannel().getIterableHistory().takeAsync(2)
+                        .thenApply(list -> list.stream().collect(Collectors.toList())).get();
+                assert member != null;
+                UserSnowflake us = User.fromId(mess.get(1).getMentions().getUsers().get(0).getIdLong());
+                guild.kick(us).queue();
+                // for now i delete the message.
+                mess.get(0).delete().queue();
+
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
 }
