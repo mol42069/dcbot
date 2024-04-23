@@ -1,0 +1,109 @@
+package com.kantenkugel.discordBot;
+
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
+import net.dv8tion.jda.api.events.GenericEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.EventListener;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.requests.GatewayIntent;
+
+import java.util.List;
+
+
+public class Bot extends ListenerAdapter
+{
+
+    public boolean on;
+    public String prefix;
+    private BanButtons banmenu;
+    public static void main(String[] args)
+    {
+
+
+
+        JDA jda = JDABuilder.createDefault("ODg5NTY5NTU0NDgzNzk4MTM3.GM4ojh.Eb0qgNJ9taHQ0DoU0m-8qeeiWju3TULSbt8rkg")
+                .enableIntents(GatewayIntent.MESSAGE_CONTENT) // enables explicit access to message.getContentDisplay()
+                .enableIntents(GatewayIntent.AUTO_MODERATION_CONFIGURATION)
+                .build();
+        // You can also add event listeners to the already built JDA instance
+        // Note that some events may not be received if the listener is added after calling build()
+        // This includes events such as the ReadyEvent
+        jda.addEventListener(new Bot());
+        jda.addEventListener(new SayCommand());
+        jda.addEventListener(new ClearChannel());
+        jda.addEventListener(new BanButtons());
+    }
+
+
+    @Override
+    public void onMessageReceived(MessageReceivedEvent event)
+    {
+        Message message = event.getMessage();
+        String content = message.getContentRaw();
+
+        if (content.equals("!start")){
+            this.on = true;
+            this.prefix = "!";
+            this.banmenu = new BanButtons();
+            message.delete().queue();
+            event.getJDA().getGuilds().forEach(guild->{
+                guild.updateCommands().addCommands(
+                        Commands.slash("echo", "Repeats messages back to you.")
+                                .addOption(OptionType.STRING, "content", "The message to repeat."),
+                        Commands.slash("clear", "Clears all messages in this channel")
+                ).queue();
+            });
+
+
+        }
+        else if(content.equals("!stop")){
+            this.on = false;
+            message.delete().queue();
+        }
+        else if(content.contains("!ban")){
+
+            banmenu.BanButtons(event);
+
+        }
+        if(!this.on){return;}
+
+        if (event.isFromType(ChannelType.PRIVATE))
+        {
+            System.out.printf("[PM] %s: %s\n", event.getAuthor().getName(),
+                    event.getMessage().getContentDisplay());
+        }
+        else
+        {
+            System.out.printf("[%s][%s] %s: %s\n", event.getGuild().getName(),
+                    event.getChannel().getName(), event.getMember().getEffectiveName(),
+                    event.getMessage().getContentDisplay());
+        }
+
+
+        if (event.getAuthor().isBot()) return;
+        // We don't want to respond to other bot accounts, including ourself
+
+        // getContentRaw() is an atomic getter
+        // getContentDisplay() is a lazy getter which modifies the content for e.g. console view (strip discord formatting)
+        if (content.equals("!ping"))
+        {
+            MessageChannel channel = event.getChannel();
+            channel.sendMessage("Pong!").queue(); // Important to call .queue() on the RestAction returned by sendMessage(...)
+        }
+
+
+    }
+
+
+}
+
+
