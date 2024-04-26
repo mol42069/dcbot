@@ -47,6 +47,7 @@ public class Bot extends ListenerAdapter
         jda.addEventListener(new SayCommand());
         jda.addEventListener(new ClearChannel());
         jda.addEventListener(new BanButtons());
+        jda.addEventListener(new ModalInteraction());
     }
 
 
@@ -55,7 +56,7 @@ public class Bot extends ListenerAdapter
     {
         Message message = event.getMessage();
         String content = message.getContentRaw();
-
+        if(content.equals("")) return;
         // TODO: following has to replaced so we can use multiple-letter prefixes.
         if(content.charAt(0) != this.prefix){return;}
 
@@ -72,12 +73,18 @@ public class Bot extends ListenerAdapter
             message.delete().queue();
             event.getJDA().getGuilds().forEach(guild->{
                 guild.updateCommands().addCommands(
+
                         Commands.slash("echo", "Repeats messages back to you.")
                                 .addOption(OptionType.STRING, "content", "The message to repeat."),
+
                         Commands.slash("clear", "Clears all messages in this channel"),
+
                         Commands.slash("ban", "Clears all messages in this channel")
-                                .addOption(OptionType.USER, "user", "which user")
-                ).queue();
+                                .addOption(OptionType.USER, "user", "which user"),
+
+                        Commands.slash("modmail", "Repeats messages back to you.")
+
+                        ).queue();
             });
 
 
@@ -99,7 +106,7 @@ public class Bot extends ListenerAdapter
                 break;
 
             case "!ban":
-                banMenu.BanButtons(event);
+                banMenu.BanButtons(event, this.commands);
                 break;
 
             case "!stop":
@@ -107,10 +114,14 @@ public class Bot extends ListenerAdapter
                 message.delete().queue();
                 break;
 
-            default:
+            case "!start":
                 break;
 
 
+            default:
+                message.delete().queue();
+                message.reply("Command doesen`t exits: " + message.getContentRaw().split(" ")[0]).queue();
+                break;
         }
 
 
@@ -140,11 +151,7 @@ public class Bot extends ListenerAdapter
             MessageChannel channel = event.getChannel();
             channel.sendMessage("Pong!").queue(); // Important to call .queue() on the RestAction returned by sendMessage(...)
         }
-
-
     }
-
-
 }
 
 
