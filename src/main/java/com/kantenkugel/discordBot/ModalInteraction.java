@@ -32,7 +32,6 @@ public class ModalInteraction extends ListenerAdapter {
 
             System.out.println("REASON: " + body);
 
-            // TODO: HERE WE WANT TO CREATE AN EMBED WHICH SHOWS THE BAN.
 
             EmbedBuilder embedBuilder = new EmbedBuilder();
 
@@ -74,8 +73,6 @@ public class ModalInteraction extends ListenerAdapter {
             String body = event.getValue("body").getAsString();
 
             System.out.println("REASON: " + body);
-
-            // TODO: HERE WE WANT TO CREATE AN EMBED WHICH SHOWS THE BAN.
 
             EmbedBuilder embedBuilder = new EmbedBuilder();
 

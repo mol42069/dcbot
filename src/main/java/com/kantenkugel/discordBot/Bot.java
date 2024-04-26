@@ -57,7 +57,9 @@ public class Bot extends ListenerAdapter
         Message message = event.getMessage();
         String content = message.getContentRaw();
         if(content.equals("")) return;
+
         // TODO: following has to replaced so we can use multiple-letter prefixes.
+
         if(content.charAt(0) != this.prefix){return;}
 
 
@@ -67,7 +69,9 @@ public class Bot extends ListenerAdapter
             this.prefix = '!';
             this.banMenu = new BanButtons();
             this.commands = new com.kantenkugel.discordBot.Commands();
+
             // TODO: WE NEED TO GET THESE PERMISSIONS FROM THE WEBSITE.
+
             this.commandPermissions.add(message.getGuild().getRolesByName("Besserer-Mensch", true).getFirst());
 
             message.delete().queue();
