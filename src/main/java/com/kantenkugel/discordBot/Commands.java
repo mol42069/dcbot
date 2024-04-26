@@ -94,7 +94,11 @@ public class Commands {
 
                 .addActionRow(
                         Button.primary("mute", "MUTE"), // Button with only a label
-                        Button.success("cancel", "CANCEL")) // Button with only an emoji
+                        Button.success("timeout", "TIMEOUT")) // Button with only an emoji
+
+                .addActionRow(
+                        Button.primary("cancel", "CANCEL"))// Button with only a label
+
 
                 .queue();
 

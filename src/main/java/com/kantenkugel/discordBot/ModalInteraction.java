@@ -24,7 +24,7 @@ public class ModalInteraction extends ListenerAdapter {
 
             System.out.println(event.isAcknowledged());
 
-            guild.ban(us, 0, TimeUnit.SECONDS).queue();
+            guild.ban(us, 2, TimeUnit.SECONDS).queue();
 
 
 

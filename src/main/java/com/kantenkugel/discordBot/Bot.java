@@ -2,9 +2,7 @@ package com.kantenkugel.discordBot;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.GenericEvent;
@@ -36,7 +34,7 @@ public class Bot extends ListenerAdapter
 
 
 
-        JDA jda = JDABuilder.createDefault("ODg5NTY5NTU0NDgzNzk4MTM3.GM4ojh.Eb0qgNJ9taHQ0DoU0m-8qeeiWju3TULSbt8rkg")
+        JDA jda = JDABuilder.createDefault("")
                 .enableIntents(GatewayIntent.MESSAGE_CONTENT) // enables explicit access to message.getContentDisplay()
                 .enableIntents(GatewayIntent.AUTO_MODERATION_CONFIGURATION)
                 .build();
@@ -56,6 +54,8 @@ public class Bot extends ListenerAdapter
     {
         Message message = event.getMessage();
         String content = message.getContentRaw();
+        Guild tguild = event.getGuild();
+
         if(content.equals("")) return;
 
         // TODO: following has to replaced so we can use multiple-letter prefixes.
@@ -119,6 +119,18 @@ public class Bot extends ListenerAdapter
                 break;
 
             case "!start":
+                break;
+
+            case "!unban":
+                System.out.println(Long.parseLong(event.getMessage().getContentRaw().split(" ")[1]));
+                UserSnowflake us = User.fromId(Long.parseLong(event.getMessage().getContentRaw().split(" ")[1]));
+
+                tguild.unban(us).queue();
+
+                event.getMessage().delete().queue();
+
+                event.getMessage().getChannel().sendMessage("unbanned user: " + us.getId()).queue();
+
                 break;
 
 
