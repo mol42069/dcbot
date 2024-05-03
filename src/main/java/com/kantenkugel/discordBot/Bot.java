@@ -70,6 +70,7 @@ public class Bot extends ListenerAdapter
 
         if(content.charAt(0) != this.prefix){
 
+            // if we dont have a prefix we look that there is no profanity in the message
 
             if(this.on) ProfanityFilter.filter(profanities, message);
 
@@ -80,9 +81,11 @@ public class Bot extends ListenerAdapter
 
         if (content.equals("!start") && !this.on){
 
+            // here we initialize the profanity hashmap with the profanities which are in a specific file for that server
             this.profanities = new HashMap<String, Integer>();
             int tempCounter = 0;
-            String path = System.getProperty("user.dir") + "\\data\\profanity.txt";
+            String path = System.getProperty("user.dir") + "\\data\\" + message.getGuildId() + "-profanity.txt";
+            System.out.println(path);
             try (BufferedReader br = new BufferedReader(new FileReader(path))) {
                 while (true) {
                         String tempLine = br.readLine();
@@ -96,13 +99,11 @@ public class Bot extends ListenerAdapter
                             break;
                         }
 
-                    // do something with each line
                 }
             } catch (FileNotFoundException e) {
-                System.out.println("FileNotFound");
                 throw new RuntimeException(e);
+
             } catch (IOException e) {
-                System.out.println("IOException");
                 throw new RuntimeException(e);
             }
 
@@ -207,17 +208,6 @@ public class Bot extends ListenerAdapter
                     event.getMessage().getContentDisplay());
         }
 
-
-        if (event.getAuthor().isBot()) return;
-        // We don't want to respond to other bot accounts, including ourself
-
-        // getContentRaw() is an atomic getter
-        // getContentDisplay() is a lazy getter which modifies the content for e.g. console view (strip discord formatting)
-        if (content.equals("!ping"))
-        {
-            MessageChannel channel = event.getChannel();
-            channel.sendMessage("Pong!").queue(); // Important to call .queue() on the RestAction returned by sendMessage(...)
-        }
     }
 }
 

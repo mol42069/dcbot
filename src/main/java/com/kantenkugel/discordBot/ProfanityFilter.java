@@ -14,6 +14,9 @@ public class ProfanityFilter {
 
             if(profanities.containsKey(tempMessage[i])){
                 message.delete().queue();
+
+
+
                 return;
             }
 
