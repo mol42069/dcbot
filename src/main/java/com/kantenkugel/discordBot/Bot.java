@@ -34,7 +34,7 @@ public class Bot extends ListenerAdapter
 
 
 
-        JDA jda = JDABuilder.createDefault("")
+        JDA jda = JDABuilder.createDefault("ODg5NTY5NTU0NDgzNzk4MTM3.GUymbU.oY5MbUev1dCgUGGeXw8ZUVn28Ob-JE8VzoMvXM")
                 .enableIntents(GatewayIntent.MESSAGE_CONTENT) // enables explicit access to message.getContentDisplay()
                 .enableIntents(GatewayIntent.AUTO_MODERATION_CONFIGURATION)
                 .build();
@@ -89,10 +89,16 @@ public class Bot extends ListenerAdapter
                         Commands.slash("modmail", "Repeats messages back to you.")
 
                         ).queue();
+
             });
+            message.reply("Bot-Started").queue();
+            return;
 
-
+        }else if(!this.on){
+            message.delete().queue();
+            return;
         }
+
         boolean allowed = false;
         for(Role role : message.getMember().getRoles()){
             if(this.commandPermissions.contains(role)){
@@ -102,8 +108,11 @@ public class Bot extends ListenerAdapter
         if(!allowed) return;
 
 
+
+
         String command = content.split(" ")[0];
         System.out.println(command);
+
         switch(command){
             case "!purge":
                 this.commands.purge(event);
@@ -115,10 +124,8 @@ public class Bot extends ListenerAdapter
 
             case "!stop":
                 this.on = false;
+                message.reply("Bot-ShutDown").queue();
                 message.delete().queue();
-                break;
-
-            case "!start":
                 break;
 
             case "!unban":
@@ -137,6 +144,8 @@ public class Bot extends ListenerAdapter
             default:
                 message.delete().queue();
                 message.reply("Command doesen`t exits: " + message.getContentRaw().split(" ")[0]).queue();
+
+
                 break;
         }
 

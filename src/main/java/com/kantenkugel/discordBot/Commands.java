@@ -89,15 +89,15 @@ public class Commands {
                               "ChannelID: " + event.getChannel().getId()
                 )
                 .addActionRow(
-                        Button.primary("ban", "BAN"), // Button with only a label
-                        Button.success("kick", "KICK")) // Button with only an emoji
+                        Button.danger("ban", "BAN"), // Button with only a label
+                        Button.primary("kick", "KICK")) // Button with only an emoji
 
                 .addActionRow(
                         Button.primary("mute", "MUTE"), // Button with only a label
                         Button.success("timeout", "TIMEOUT")) // Button with only an emoji
 
                 .addActionRow(
-                        Button.primary("cancel", "CANCEL"))// Button with only a label
+                        Button.secondary("cancel", "CANCEL"))// Button with only a label
 
 
                 .queue();

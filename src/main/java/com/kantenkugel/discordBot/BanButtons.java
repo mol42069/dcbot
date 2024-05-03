@@ -48,6 +48,7 @@ public class BanButtons extends ListenerAdapter {
         // HERE WE HAVE THE BAN MENU BUTTON INTERACTIONS.
 
         TextInput body;
+        TextInput timeSpan;
         Modal modal;
 
         switch (event.getComponentId()){
@@ -56,7 +57,14 @@ public class BanButtons extends ListenerAdapter {
 
                 // TODO: HERE WE WANT TO EDIT THE MESSAGE SO WE ASK FOR A REASON.
 
-                body = TextInput.create("body", "Body", TextInputStyle.PARAGRAPH)
+                timeSpan = TextInput.create("time", "TIME:", TextInputStyle.PARAGRAPH)
+                        .setPlaceholder("how long should the messages be removed? (in s)")
+                        .setMinLength(0)
+                        .setMaxLength(1000)
+                        .build();
+
+
+                body = TextInput.create("reason", "REASON:", TextInputStyle.PARAGRAPH)
                         .setPlaceholder("Your concerns go here")
                         .setMinLength(10)
                         .setMaxLength(1000)
@@ -64,6 +72,7 @@ public class BanButtons extends ListenerAdapter {
 
                 modal = Modal.create("modal-ban", "USERID: " + event.getMember().getId())
                         .addComponents(ActionRow.of(body))
+                        .addComponents(ActionRow.of(timeSpan))
                         .build();
 
                 event.replyModal(modal).queue();
@@ -92,6 +101,29 @@ public class BanButtons extends ListenerAdapter {
 
                 event.replyModal(modal).queue();
 
+                break;
+
+            case "timeout":
+
+                timeSpan = TextInput.create("time", "TIME:", TextInputStyle.SHORT)
+                        .setPlaceholder("how long should the User be timed out?")
+                        .setMinLength(0)
+                        .setMaxLength(1000)
+                        .build();
+
+
+                body = TextInput.create("reason", "REASON:", TextInputStyle.PARAGRAPH)
+                        .setPlaceholder("Your concerns go here")
+                        .setMinLength(0)
+                        .setMaxLength(1000)
+                        .build();
+
+                modal = Modal.create("modal-timeout", "USERID: " + event.getMember().getId())
+                        .addComponents(ActionRow.of(body))
+                        .addComponents(ActionRow.of(timeSpan))
+                        .build();
+
+                event.replyModal(modal).queue();
                 break;
 
             case "mute":

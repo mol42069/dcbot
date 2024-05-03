@@ -22,13 +22,19 @@ public class ModalInteraction extends ListenerAdapter {
             UserSnowflake us = User.fromId(Long.parseLong(event.getMessage().getContentRaw().split(" ")[3]));
             String username = event.getMessage().getContentRaw().split(" ")[1];
 
+            String body = event.getValue("reason").getAsString();
+            int timespan = Integer.parseInt(event.getValue("time").getAsString());
+
             System.out.println(event.isAcknowledged());
 
-            guild.ban(us, 2, TimeUnit.SECONDS).queue();
+            guild.ban(us, timespan, TimeUnit.SECONDS)
+                    .reason(body)
+                    .queue();
+
+            String timeS = event.getValue("time").getAsString();
 
 
 
-            String body = event.getValue("body").getAsString();
 
             System.out.println("REASON: " + body);
 
@@ -39,7 +45,6 @@ public class ModalInteraction extends ListenerAdapter {
             embedBuilder.setTitle("Banned User: " + username);
 
             // Set the description of the embed
-            embedBuilder.setDescription("This is a simple example of an embed message.");
 
             // Set other properties as needed
             embedBuilder.setColor(0xFF0028); // Set the color to gold
@@ -59,7 +64,7 @@ public class ModalInteraction extends ListenerAdapter {
 
         }
 
-        if (event.getModalId().equals("modal-kick")) {
+        else if (event.getModalId().equals("modal-kick")) {
             Guild guild = event.getGuild();
             UserSnowflake us = User.fromId(Long.parseLong(event.getMessage().getContentRaw().split(" ")[3]));
             String username = event.getMessage().getContentRaw().split(" ")[1];
@@ -70,7 +75,7 @@ public class ModalInteraction extends ListenerAdapter {
 
 
 
-            String body = event.getValue("body").getAsString();
+            String body = event.getValue("reason").getAsString();
 
             System.out.println("REASON: " + body);
 
@@ -80,13 +85,61 @@ public class ModalInteraction extends ListenerAdapter {
             embedBuilder.setTitle("Kicked User: " + username);
 
             // Set the description of the embed
-            embedBuilder.setDescription("This is a simple example of an embed message.");
 
             // Set other properties as needed
             embedBuilder.setColor(0xFFD700); // Set the color to gold
             embedBuilder.addField("USER:", username, true); // Add a field with inline formatting
             embedBuilder.addField("USERID: ", us.getId(), false);
             embedBuilder.addField("REASON: ", body, false);
+
+            // Build the embed object
+
+
+            guild.getTextChannelById(Long.parseLong(event.getMessage().getContentRaw().split(" ")[5]))
+                    .sendMessageEmbeds(embedBuilder.build()).queue();
+
+
+
+            event.getChannel().delete().queue();
+
+        } else if(event.getModalId().equals("modal-timeout")){
+
+
+            Guild guild = event.getGuild();
+            UserSnowflake us = User.fromId(Long.parseLong(event.getMessage().getContentRaw().split(" ")[3]));
+            String username = event.getMessage().getContentRaw().split(" ")[1];
+
+            String body = event.getValue("reason").getAsString();
+            int timespan = Integer.parseInt(event.getValue("time").getAsString());
+
+            System.out.println(event.isAcknowledged());
+
+            assert guild != null;
+            guild.timeoutFor(us, timespan, TimeUnit.SECONDS)
+                    .reason(body)
+                    .queue();
+
+            String timeS = event.getValue("time").getAsString();
+
+
+
+
+            System.out.println("REASON: " + body);
+
+
+            EmbedBuilder embedBuilder = new EmbedBuilder();
+
+            // Set the title of the embed
+            embedBuilder.setTitle("TimedOut User: " + username);
+
+            // Set the description of the embed
+
+            // Set other properties as needed
+            embedBuilder.setColor(0xFFD700); // Set the color to gold
+            embedBuilder.addField("USER:", username, true); // Add a field with inline formatting
+            embedBuilder.addField("USERID: ", us.getId(), true);
+            embedBuilder.addField("REASON: ", body, false);
+            embedBuilder.addField("DURATION: ", timeS + "s", false);
 
             // Build the embed object
 
