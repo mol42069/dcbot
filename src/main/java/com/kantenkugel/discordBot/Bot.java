@@ -15,17 +15,25 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 
 public class Bot extends ListenerAdapter
 {
 
+    private static final String COMMA_DELIMITER = ",";
     public boolean on = false;
     public char prefix = '!';
     private BanButtons banMenu;
     private com.kantenkugel.discordBot.Commands commands;
+    private HashMap<String, Integer> profanities;
 
     private List<Role> commandPermissions = new ArrayList<>();
 
@@ -60,11 +68,44 @@ public class Bot extends ListenerAdapter
 
         // TODO: following has to replaced so we can use multiple-letter prefixes.
 
-        if(content.charAt(0) != this.prefix){return;}
+        if(content.charAt(0) != this.prefix){
+
+
+            if(this.on) ProfanityFilter.filter(profanities, message);
+
+            return;
+        }
 
 
 
         if (content.equals("!start") && !this.on){
+
+            this.profanities = new HashMap<String, Integer>();
+            int tempCounter = 0;
+            String path = System.getProperty("user.dir") + "\\data\\profanity.txt";
+            try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+                while (true) {
+                        String tempLine = br.readLine();
+                        if(tempLine != null) {
+
+                            this.profanities.put(tempLine, tempCounter);
+
+
+                            tempCounter++;
+                        }else{
+                            break;
+                        }
+
+                    // do something with each line
+                }
+            } catch (FileNotFoundException e) {
+                System.out.println("FileNotFound");
+                throw new RuntimeException(e);
+            } catch (IOException e) {
+                System.out.println("IOException");
+                throw new RuntimeException(e);
+            }
+
             this.on = true;
             this.prefix = '!';
             this.banMenu = new BanButtons();
@@ -99,6 +140,8 @@ public class Bot extends ListenerAdapter
             return;
         }
 
+
+
         boolean allowed = false;
         for(Role role : message.getMember().getRoles()){
             if(this.commandPermissions.contains(role)){
@@ -106,7 +149,6 @@ public class Bot extends ListenerAdapter
             }
         }
         if(!allowed) return;
-
 
 
 
