@@ -1,77 +1,90 @@
 package com.kantenkugel.discordBot;
 
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.UserSnowflake;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.requests.restaction.ChannelAction;
 
-import java.util.HashSet;
+import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
 
-public class ProfanityFilter {
+public class BanMenu {
 
-    public static void filter(HashSet<String> profanities, Message message, TextChannel mod_text_channel){
+    public static void create_layout(MessageReceivedEvent event) {
 
-        String[] tempMessage = message.getContentRaw().split(" ");
+        Guild guild = event.getGuild();
+        String channelName = event.getChannel().getName();
 
-        for (String s : tempMessage) {
+        TextChannel existingChannel = guild.getTextChannelsByName(channelName, true).stream().findFirst().orElse(null);
+        int channelPosition = existingChannel.getPositionRaw();
+        channelName += "-mod";
 
-            if (profanities.contains(s)) {
-                message.delete().queue();
+        String categoryName = existingChannel.getParentCategory() != null ? existingChannel.getParentCategory().getName() : null;
 
-                createDeletedMsgEmbed(message, mod_text_channel, s);
-                System.out.println(message);
 
-                return;
-            }
+        ChannelAction<TextChannel> channelAction = guild.createTextChannel(channelName);
 
+
+        // Set the category for the new channel (if the existing channel was in a category)
+        channelAction.setPosition(channelPosition);
+
+        if (categoryName != null) {
+            channelAction.setParent(guild.getCategoriesByName(categoryName, true).get(0));
         }
 
-    }
-
-    public static void createDeletedMsgEmbed(Message message, TextChannel mod_text_channel, String reason){
-
-        EmbedBuilder embedBuilder = new EmbedBuilder();
-
-        // Set the title of the embed
-        embedBuilder.setTitle("Auto Deleted Message");
+        EnumSet<Permission> permissions = EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND);
+        channelAction
+                .addPermissionOverride(event.getMember(), permissions, null) // grant access to the user
+                .addPermissionOverride(guild.getPublicRole(), null, permissions) // deny access to @everyone.addPermissionOverride(event.getMember())
+                .addPermissionOverride(guild.getRolesByName("Besserer-Mensch", false).get(0), permissions, null);
 
 
-        UserSnowflake user = message.getAuthor();
+        // Complete the channel creation and update the guild
+        channelAction.complete();
 
-        embedBuilder.setColor(0xFFD700); // Set the color to gold
-        embedBuilder.addField("USER:", message.getAuthor().getEffectiveName(), true); // Add a field with inline formatting
-        embedBuilder.addField("USERID: ", user.getId(), true);
-        embedBuilder.addField("MESSAGE: ", message.getContentRaw(), false);
-        embedBuilder.addField("REASON: ", reason, false);
+        System.out.println(guild.getTextChannelsByName(channelName, true).get(0));
 
-
-        mod_text_channel.sendMessageEmbeds(embedBuilder.build())
+        guild.getTextChannelsByName(channelName, false).get(0)
+                .sendMessage("User: " + event.getMessage().getMentions().getUsers().get(0).getEffectiveName() + " \n" +
+                        "UserId: " + event.getMessage().getMentions().getUsers().get(0).getId() + " \n" +
+                        "ChannelID: " + event.getChannel().getId()
+                )
+                .addActionRow(
+                        Button.danger("userMenu-ban", "BAN"), // Button with only a label
+                        Button.primary("userMenu-kick", "KICK")) // Button with only an emoji
 
                 .addActionRow(
-                        Button.danger("profanityFilter-ban", "BAN"), // Button with only a label
-                        Button.primary("profanityFilter-kick", "KICK")) // Button with only an emoji
+                        Button.primary("userMenu-mute", "MUTE"), // Button with only a label
+                        Button.success("userMenu-timeout", "TIMEOUT")) // Button with only an emoji
 
                 .addActionRow(
-                       Button.success("profanityFilter-timeout", "TIMEOUT")) // Button with only an emoji
+                        Button.secondary("userMenu-cancel", "CANCEL"))// Button with only a label
+
 
                 .queue();
+
+        event.getMessage().delete().queue();
+
+
     }
 
     public static void ButtonInteraction(ButtonInteractionEvent event, String banButtonID){
+
+
         Guild guild=event.getGuild();
         assert guild != null;
-        String userID = event.getMessage().getEmbeds().get(0).getFields().get(1).getValue();
-        String channelID = event.getChannelId();
+
         TextInput body;
         TextInput timeSpan;
         Modal modal;
@@ -95,7 +108,7 @@ public class ProfanityFilter {
                         .setMaxLength(1000)
                         .build();
 
-                modal = Modal.create("profanityFilter-ban-" + userID + "-" + channelID, "USERID: " + event.getMember().getId())
+                modal = Modal.create("userMenu-ban", "USERID: " + event.getMember().getId())
                         .addComponents(ActionRow.of(body))
                         .addComponents(ActionRow.of(timeSpan))
                         .build();
@@ -114,7 +127,7 @@ public class ProfanityFilter {
                         .setMaxLength(1000)
                         .build();
 
-                modal = Modal.create("profanityFilter-kick-" + userID + "-" + channelID, "USERID: " + event.getMember().getId())
+                modal = Modal.create("userMenu-kick", "USERID: " + event.getMember().getId())
                         .addComponents(ActionRow.of(body))
                         .build();
 
@@ -137,7 +150,7 @@ public class ProfanityFilter {
                         .setMaxLength(1000)
                         .build();
 
-                modal = Modal.create("profanityFilter-timeout-" + userID + "-" + channelID, "USERID: " + event.getMember().getId())
+                modal = Modal.create("userMenu-timeout", "USERID: " + event.getMember().getId())
                         .addComponents(ActionRow.of(body))
                         .addComponents(ActionRow.of(timeSpan))
                         .build();
@@ -145,22 +158,37 @@ public class ProfanityFilter {
                 event.replyModal(modal).queue();
                 break;
 
+            case "mute":
 
+                UserSnowflake us = User.fromId(Long.parseLong(event.getMessage().getContentRaw().split(" ")[3]));
+
+                guild.mute(us, true).queue();
+
+                event.getChannel().delete().queue();
+                break;
+
+            case "cancel":
+                event.getChannel().delete().queue();
+
+                break;
 
             default:
                 break;
 
         }
+
+
     }
 
-
-    public static void ModalInteraction(ModalInteractionEvent event, String modalID, String userID, String channelID){
+    public static void ModalInteraction(ModalInteractionEvent event, String modalID){
 
 
         event.deferReply(true).queue();
+        System.out.println(event.getMessage().getContentRaw());
         Guild guild = event.getGuild();
-        UserSnowflake us = User.fromId(userID);
-        String username = User.fromId(userID).toString();
+        UserSnowflake us = User.fromId(Long.parseLong(event.getMessage().getContentRaw().split(" ")[3]));
+        String username = event.getMessage().getContentRaw().split(" ")[1];
+
         EmbedBuilder embedBuilder = new EmbedBuilder();
         String body, timeS;
         int timespan;
@@ -172,12 +200,11 @@ public class ProfanityFilter {
                 body = event.getValue("reason").getAsString();
                 timespan = Integer.parseInt(event.getValue("time").getAsString());
 
-
                 guild.ban(us, timespan, TimeUnit.SECONDS)
                         .reason(body)
                         .queue();
 
-                System.out.println("banned user: " + userID + " | reason: " + body);
+                timeS = event.getValue("time").getAsString();
 
                 // Set the title of the embed
                 embedBuilder.setTitle("Banned User: " + username);
@@ -192,17 +219,19 @@ public class ProfanityFilter {
 
                 // Build the embed object
 
-                guild.getTextChannelById(channelID)
+
+                guild.getTextChannelById(Long.parseLong(event.getMessage().getContentRaw().split(" ")[5]))
                         .sendMessageEmbeds(embedBuilder.build()).queue();
 
+
+                event.getChannel().delete().queue();
                 break;
 
             case "kick":
+
                 guild.kick(us).queue();
 
                 body = event.getValue("reason").getAsString();
-
-                System.out.println("kicked user: " + userID + " | reason: " + body);
 
                 // Set the title of the embed
                 embedBuilder.setTitle("Kicked User: " + username);
@@ -217,9 +246,10 @@ public class ProfanityFilter {
 
                 // Build the embed object
 
-                guild.getTextChannelById(channelID)
+                guild.getTextChannelById(Long.parseLong(event.getMessage().getContentRaw().split(" ")[5]))
                         .sendMessageEmbeds(embedBuilder.build()).queue();
 
+                event.getChannel().delete().queue();
                 break;
 
             case "timeout":
@@ -233,8 +263,6 @@ public class ProfanityFilter {
                         .queue();
 
                 timeS = event.getValue("time").getAsString();
-
-                System.out.println("timedout user: " + userID + " | reason: " + body + " | duration:  " + timeS);
 
                 // Set the title of the embed
                 embedBuilder.setTitle("TimedOut User: " + username);
@@ -250,11 +278,15 @@ public class ProfanityFilter {
 
                 // Build the embed object
 
-                guild.getTextChannelById(channelID)
+                guild.getTextChannelById(Long.parseLong(event.getMessage().getContentRaw().split(" ")[5]))
                         .sendMessageEmbeds(embedBuilder.build()).queue();
 
                 break;
+
         }
-        event.getMessage().delete().queue();
+        event.getChannel().delete().queue();
     }
+
+
+
 }

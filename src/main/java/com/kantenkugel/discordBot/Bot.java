@@ -4,36 +4,24 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
-import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
-import net.dv8tion.jda.api.events.GenericEvent;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.hooks.EventListener;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 
 public class Bot extends ListenerAdapter
 {
-
-    private static final String COMMA_DELIMITER = ",";
+    public String mod_channel_name = "mod";
+    public TextChannel mod_text_channel;
     public boolean on = false;
     public char prefix = '!';
-    private BanButtons banMenu;
-    private com.kantenkugel.discordBot.Commands commands;
-    private HashMap<String, Integer> profanities;
+    private Buttons banMenu;
+    private HashSet<String> profanities;
 
     private List<Role> commandPermissions = new ArrayList<>();
 
@@ -50,9 +38,7 @@ public class Bot extends ListenerAdapter
         // Note that some events may not be received if the listener is added after calling build()
         // This includes events such as the ReadyEvent
         jda.addEventListener(new Bot());
-        jda.addEventListener(new SayCommand());
-        jda.addEventListener(new ClearChannel());
-        jda.addEventListener(new BanButtons());
+        jda.addEventListener(new Buttons());
         jda.addEventListener(new ModalInteraction());
     }
 
@@ -60,19 +46,22 @@ public class Bot extends ListenerAdapter
     @Override
     public void onMessageReceived(MessageReceivedEvent event)
     {
+
+
         Message message = event.getMessage();
+
+        if(message.getAuthor().isBot()) return;
+
         String content = message.getContentRaw();
         Guild tguild = event.getGuild();
-
-        if(content.equals("")) return;
 
         // TODO: following has to replaced so we can use multiple-letter prefixes.
 
         if(content.charAt(0) != this.prefix){
 
-            // if we dont have a prefix we look that there is no profanity in the message
+            // if we don't have a prefix we look that there is no profanity in the message
 
-            if(this.on) ProfanityFilter.filter(profanities, message);
+            if(this.on) ProfanityFilter.filter(profanities, message, this.mod_text_channel);
 
             return;
         }
@@ -82,57 +71,32 @@ public class Bot extends ListenerAdapter
         if (content.equals("!start") && !this.on){
 
             // here we initialize the profanity hashmap with the profanities which are in a specific file for that server
-            this.profanities = new HashMap<String, Integer>();
-            int tempCounter = 0;
-            String path = System.getProperty("user.dir") + "\\data\\" + message.getGuildId() + "-profanity.txt";
-            System.out.println(path);
-            try (BufferedReader br = new BufferedReader(new FileReader(path))) {
-                while (true) {
-                        String tempLine = br.readLine();
-                        if(tempLine != null) {
+            this.mod_text_channel = event.getGuild().getTextChannelsByName(this.mod_channel_name, false).get(0);
 
-                            this.profanities.put(tempLine, tempCounter);
-
-
-                            tempCounter++;
-                        }else{
-                            break;
-                        }
-
-                }
-            } catch (FileNotFoundException e) {
-                throw new RuntimeException(e);
-
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
+            this.profanities = LoadConfig.loadProfanity(message);
+            LoadConfig.load(this);
             this.on = true;
             this.prefix = '!';
-            this.banMenu = new BanButtons();
-            this.commands = new com.kantenkugel.discordBot.Commands();
+            this.banMenu = new Buttons();
 
             // TODO: WE NEED TO GET THESE PERMISSIONS FROM THE WEBSITE.
 
             this.commandPermissions.add(message.getGuild().getRolesByName("Besserer-Mensch", true).getFirst());
 
             message.delete().queue();
-            event.getJDA().getGuilds().forEach(guild->{
-                guild.updateCommands().addCommands(
+            event.getJDA().getGuilds().forEach(guild-> guild.updateCommands().addCommands(
 
-                        Commands.slash("echo", "Repeats messages back to you.")
-                                .addOption(OptionType.STRING, "content", "The message to repeat."),
+                    Commands.slash("echo", "Repeats messages back to you.")
+                            .addOption(OptionType.STRING, "content", "The message to repeat."),
 
-                        Commands.slash("clear", "Clears all messages in this channel"),
+                    Commands.slash("clear", "Clears all messages in this channel"),
 
-                        Commands.slash("ban", "Clears all messages in this channel")
-                                .addOption(OptionType.USER, "user", "which user"),
+                    Commands.slash("ban", "Clears all messages in this channel")
+                            .addOption(OptionType.USER, "user", "which user"),
 
-                        Commands.slash("modmail", "Repeats messages back to you.")
+                    Commands.slash("modmail", "Repeats messages back to you.")
 
-                        ).queue();
-
-            });
+                    ).queue());
             message.reply("Bot-Started").queue();
             return;
 
@@ -144,9 +108,10 @@ public class Bot extends ListenerAdapter
 
 
         boolean allowed = false;
-        for(Role role : message.getMember().getRoles()){
+        for(Role role : Objects.requireNonNull(message.getMember()).getRoles()){
             if(this.commandPermissions.contains(role)){
                 allowed = true;
+                break;
             }
         }
         if(!allowed) return;
@@ -158,11 +123,11 @@ public class Bot extends ListenerAdapter
 
         switch(command){
             case "!purge":
-                this.commands.purge(event);
+                CommandsL.purge(event);
                 break;
 
             case "!ban":
-                banMenu.BanButtons(event, this.commands);
+                BanMenu.create_layout(event);
                 break;
 
             case "!stop":
@@ -186,7 +151,7 @@ public class Bot extends ListenerAdapter
 
             default:
                 message.delete().queue();
-                message.reply("Command doesen`t exits: " + message.getContentRaw().split(" ")[0]).queue();
+                message.reply("Command does not exits: " + message.getContentRaw().split(" ")[0]).queue();
 
 
                 break;
@@ -204,7 +169,7 @@ public class Bot extends ListenerAdapter
         else
         {
             System.out.printf("[%s][%s] %s: %s\n", event.getGuild().getName(),
-                    event.getChannel().getName(), event.getMember().getEffectiveName(),
+                    event.getChannel().getName(), Objects.requireNonNull(event.getMember()).getEffectiveName(),
                     event.getMessage().getContentDisplay());
         }
 
