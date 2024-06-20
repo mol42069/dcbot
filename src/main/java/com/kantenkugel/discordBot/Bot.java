@@ -30,7 +30,7 @@ public class Bot extends ListenerAdapter
 
 
 
-        JDA jda = JDABuilder.createDefault("ODg5NTY5NTU0NDgzNzk4MTM3.GUymbU.oY5MbUev1dCgUGGeXw8ZUVn28Ob-JE8VzoMvXM")
+        JDA jda = JDABuilder.createDefault("Token")
                 .enableIntents(GatewayIntent.MESSAGE_CONTENT) // enables explicit access to message.getContentDisplay()
                 .enableIntents(GatewayIntent.AUTO_MODERATION_CONFIGURATION)
                 .build();
