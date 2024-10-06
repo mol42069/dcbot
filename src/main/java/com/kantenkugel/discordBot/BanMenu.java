@@ -79,17 +79,17 @@ public class BanMenu {
 
     }
 
-    public static void ButtonInteraction(ButtonInteractionEvent event, String banButtonID){
+    public static void ButtonInteraction(ButtonInteractionEvent event, String banButtonID) {
 
 
-        Guild guild=event.getGuild();
+        Guild guild = event.getGuild();
         assert guild != null;
 
         TextInput body;
         TextInput timeSpan;
         Modal modal;
 
-        switch (banButtonID){
+        switch (banButtonID) {
 
             case "ban":                 // HERE WE GET THE LAST MESSAGE AND EXTRACT THE ID FROM THE USER WHICH IS SUPPOSED TO BE BANNED
 
@@ -180,6 +180,7 @@ public class BanMenu {
 
     }
 
+
     public static void ModalInteraction(ModalInteractionEvent event, String modalID){
 
 
@@ -196,9 +197,19 @@ public class BanMenu {
         switch (modalID) {
             case "ban":
 
-
                 body = event.getValue("reason").getAsString();
-                timespan = Integer.parseInt(event.getValue("time").getAsString());
+                timespan = 0;
+                try {
+                    timespan = Integer.parseInt(event.getValue("time").getAsString());
+                } catch (java.lang.NumberFormatException e){
+                    // reload modal bc the timespan is wrong.
+                    // or for now we just delete the channel.
+
+                    event.getChannel().delete().queue();
+                    return;
+                }
+
+                assert timespan != 0;
 
                 guild.ban(us, timespan, TimeUnit.SECONDS)
                         .reason(body)
@@ -275,6 +286,15 @@ public class BanMenu {
                 embedBuilder.addField("USERID: ", us.getId(), true);
                 embedBuilder.addField("REASON: ", body, false);
                 embedBuilder.addField("DURATION: ", timeS + "s", false);
+                timespan = 0;
+                try {
+                    timespan = Integer.parseInt(event.getValue("time").getAsString());
+                } catch (java.lang.NumberFormatException e){
+                    // reload modal bc the timespan is wrong.
+                    // or for now we just delete the channel.
+                    event.getChannel().delete().queue();
+                    return;
+                }
 
                 // Build the embed object
 

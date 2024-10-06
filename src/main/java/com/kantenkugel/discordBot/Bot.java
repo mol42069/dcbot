@@ -11,11 +11,12 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
+import java.io.*;
 import java.util.*;
-
 
 public class Bot extends ListenerAdapter
 {
+    public DatabaseConnection db = null;
     public String mod_channel_name = "mod";
     public TextChannel mod_text_channel;
     public boolean on = false;
@@ -25,14 +26,26 @@ public class Bot extends ListenerAdapter
 
     private List<Role> commandPermissions = new ArrayList<>();
 
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) throws IOException {
 
+        // HERE ADD THE TOKEN LOCATION
+        File file = new File(
+                "C:\\Users\\morat\\IdeaProjects\\dcBottesta\\dctoken.txt");
 
+        // Note:  Double backquote is to avoid compiler
+        // interpret words
+        // like \test as \t (ie. as a escape sequence)
 
-        JDA jda = JDABuilder.createDefault("Token")
+        // Creating an object of BufferedReader class
+        BufferedReader br
+                = new BufferedReader(new FileReader(file));
+
+        String token = br.readLine();
+
+        JDA jda = JDABuilder.createDefault(token)
                 .enableIntents(GatewayIntent.MESSAGE_CONTENT) // enables explicit access to message.getContentDisplay()
                 .enableIntents(GatewayIntent.AUTO_MODERATION_CONFIGURATION)
+                .enableIntents(GatewayIntent.GUILD_MEMBERS)
                 .build();
         // You can also add event listeners to the already built JDA instance
         // Note that some events may not be received if the listener is added after calling build()
@@ -55,6 +68,23 @@ public class Bot extends ListenerAdapter
         String content = message.getContentRaw();
         Guild tguild = event.getGuild();
 
+        if (this.db != null){
+
+            // if needed create a new user
+            if (!db.user_exists(Objects.requireNonNull(message.getMember()).getId())){
+                db.insert_new_member(Objects.requireNonNull(message.getMember()).getId(), tguild.getId());
+            } // if needed create a new user-server relation
+            else if (!db.user_server_exists(Objects.requireNonNull(message.getMember()).getId(), tguild.getId())){
+                db.insert_member_in_server(Objects.requireNonNull(message.getMember()).getId(), tguild.getId());
+            }
+            else System.out.println("member_server already exists");
+
+            // write all messages into the log table with all the needed info.
+            this.db.insert_into_log(tguild.getId(), Objects.requireNonNull(message.getMember()).getId(),
+                    Objects.requireNonNull(message.getChannelId()), message.getContentRaw());
+
+        }
+
         // TODO: following has to replaced so we can use multiple-letter prefixes.
 
         if(content.charAt(0) != this.prefix){
@@ -74,14 +104,13 @@ public class Bot extends ListenerAdapter
             this.mod_text_channel = event.getGuild().getTextChannelsByName(this.mod_channel_name, false).get(0);
 
             this.profanities = LoadConfig.loadProfanity(message);
-            LoadConfig.load(this);
+            this.db = LoadConfig.load(tguild);
             this.on = true;
             this.prefix = '!';
             this.banMenu = new Buttons();
-
             // TODO: WE NEED TO GET THESE PERMISSIONS FROM THE WEBSITE.
 
-            this.commandPermissions.add(message.getGuild().getRolesByName("Besserer-Mensch", true).getFirst());
+            this.commandPermissions.add(message.getGuild().getRolesByName("Besserer-Mensch", true).get(0));
 
             message.delete().queue();
             event.getJDA().getGuilds().forEach(guild-> guild.updateCommands().addCommands(
@@ -148,16 +177,12 @@ public class Bot extends ListenerAdapter
 
                 break;
 
-
             default:
                 message.delete().queue();
                 message.reply("Command does not exits: " + message.getContentRaw().split(" ")[0]).queue();
 
-
                 break;
         }
-
-
 
         if(!this.on){return;}
 

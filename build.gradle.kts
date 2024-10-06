@@ -15,6 +15,7 @@ repositories {
 
 dependencies {
     implementation("net.dv8tion:JDA:$jdaVersion")
+    implementation("mysql:mysql-connector-java:8.0.33")
 }
 
 tasks.withType<JavaCompile> {
