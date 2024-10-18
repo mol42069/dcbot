@@ -114,7 +114,7 @@ public class BanMenu {
 
         System.out.println(guild.getTextChannelsByName(channelName, true).get(0));
 
-        MessageCreateAction menu =  guild.getTextChannelsByName(channelName, false).get(0)
+        MessageCreateAction menu =  guild.getTextChannelsByName(channelName, true).get(0)
                 .sendMessage("User: " + event.getMessage().getMentions().getUsers().get(0).getEffectiveName() + " \n" +
                         "UserId: " + event.getMessage().getMentions().getUsers().get(0).getId() + " \n" +
                         "ChannelID: " + event.getChannel().getId()
@@ -125,10 +125,7 @@ public class BanMenu {
         System.out.println(punishments_ids.toString());
 
         for (int id = 1; id < punishments_ids.size(); id++) {
-            /*.addActionRow(
-                Button.primary("userMenu-mute", "MUTE"), // Button with only a label
-                Button.success("userMenu-timeout", "TIMEOUT")) // Button with only an emoji
-*/
+
             ArrayList<String[]> details1 = db.get_ban_menu_details(id);
 
             if(punishments_ids.size() < id +1){
@@ -204,7 +201,7 @@ public class BanMenu {
             case "kick":
                 // HERE WE GET THE LAST MESSAGE AND EXTRACT THE ID FROM THE USER WHICH IS SUPPOSED TO BE KICKED
 
-                body = TextInput.create("body", "Body", TextInputStyle.PARAGRAPH)
+                body = TextInput.create("body", "REASON:", TextInputStyle.PARAGRAPH)
                         .setPlaceholder("Your concerns go here")
                         .setMinLength(0)
                         .setMaxLength(1000)
@@ -298,6 +295,9 @@ public class BanMenu {
                         .reason(body)
                         .queue();
 
+                //db.give_user_punishment(guild.getId(), timespan, us.getId(),
+                //        event.getMessage().getContentRaw().split(" ")[5], body);
+
                 timeS = event.getValue("time").getAsString();
 
                 // Set the title of the embed
@@ -319,13 +319,13 @@ public class BanMenu {
 
 
                 event.getChannel().delete().queue();
-                break;
+                return;
 
             case "kick":
 
                 guild.kick(us).queue();
-
-                body = event.getValue("reason").getAsString();
+                System.out.println(event.getValue("body"));
+                body = event.getValue("body").getAsString();
 
                 // Set the title of the embed
                 embedBuilder.setTitle("Kicked User: " + username);
@@ -342,9 +342,9 @@ public class BanMenu {
 
                 guild.getTextChannelById(Long.parseLong(event.getMessage().getContentRaw().split(" ")[5]))
                         .sendMessageEmbeds(embedBuilder.build()).queue();
-
+                System.out.println("kicked_user");
                 event.getChannel().delete().queue();
-                break;
+                return;
 
             case "timeout":
 
@@ -384,7 +384,10 @@ public class BanMenu {
                 guild.getTextChannelById(Long.parseLong(event.getMessage().getContentRaw().split(" ")[5]))
                         .sendMessageEmbeds(embedBuilder.build()).queue();
 
-                break;
+
+                event.getChannel().delete().queue();
+
+                return;
 
         }
         event.getChannel().delete().queue();

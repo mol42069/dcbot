@@ -21,11 +21,6 @@ public class Buttons extends ListenerAdapter {
             case "profanityFilter":
                 ProfanityFilter.ButtonInteraction(event, buttonID);
                 break;
-
-
         }
-
-
-
     }
 }

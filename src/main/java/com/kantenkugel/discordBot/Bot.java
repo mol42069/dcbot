@@ -57,6 +57,21 @@ public class Bot extends ListenerAdapter
     }
 
 
+    private int convert_punishment(String punishment){
+        switch (punishment.toLowerCase()){
+            case "timedout":
+                return 3;
+            case "banned":
+                return 1;
+            case "kicked":
+                return 2;
+            case "muted":
+                return 4;
+        }
+
+        return 0;
+    }
+
     @Override
     public void onMessageReceived(MessageReceivedEvent event)
     {
@@ -64,11 +79,47 @@ public class Bot extends ListenerAdapter
 
         Message message = event.getMessage();
 
-        if(message.getAuthor().isBot()) return;
+
+        if(message.getAuthor().isBot()) {
+            if (message.getEmbeds().isEmpty()) {
+                return;
+            }
+            System.out.println(message.getContentRaw() + "\n\n");
+            System.out.println(message.getEmbeds());
+
+            if (this.db == null){
+                System.out.println(message.getContentRaw());
+            } else if (Objects.equals(message.getEmbeds().get(0).getFields().get(0).getName(), "USER:") &&
+                        !Objects.equals(message.getEmbeds().get(0).getFields().get(2).getValue(), "ProfanityFilter_timeout"))
+            {
+
+                String dur = "0s";
+                try {
+                    dur = message.getEmbeds().get(0).getFields().get(3).getValue();
+                } catch (IndexOutOfBoundsException e) {
+                    System.out.println(" ");
+                }
+
+
+                assert dur != null;
+                dur = dur.substring(0, dur.length() - 1);
+                int punishment_id = convert_punishment(message.getEmbeds().get(0).getTitle().split(" ")[0]);
+
+                this.db.give_user_punishment(
+                        message.getGuildId(),
+                        Integer.parseInt(dur),
+                        message.getEmbeds().get(0).getFields().get(1).getValue(),
+                        message.getEmbeds().get(0).getFields().get(2).getValue(),
+                        punishment_id
+                        );
+            }
+            return;
+        };
 
         String content = message.getContentRaw();
         Guild tguild = event.getGuild();
 
+        System.out.println("message received event");
         if (this.db != null){
             if(!db.server_exists(tguild.getId())){
                 db.insert_new_server(tguild.getId());
@@ -84,7 +135,7 @@ public class Bot extends ListenerAdapter
 
             // write all messages into the log table with all the needed info.
             this.db.insert_into_log(tguild.getId(), Objects.requireNonNull(message.getMember()).getId(),
-                    Objects.requireNonNull(message.getChannelId()), message.getContentRaw());
+                    Objects.requireNonNull(message.getChannelId()), message.getId(), message.getContentRaw());
 
         }
 
@@ -137,6 +188,9 @@ public class Bot extends ListenerAdapter
             return;
 
         }else if (content.equals("!start") && this.db != null){
+            this.commandPermissions.add(message.getGuild()
+                    .getRolesByName("Besserer-Mensch", true).get(0));
+
             LoadConfig.load_for_server(tguild, this.db);
 
         }else if(content.equals("!get_messages")){
@@ -146,13 +200,8 @@ public class Bot extends ListenerAdapter
             for (int i = 0; i < user_log.size(); i++){
                 System.out.println(Arrays.toString(user_log.get(i)));
             }
-
-
-
         }
-
-
-
+        System.out.println("1");
         boolean allowed = false;
         for(Role role : Objects.requireNonNull(message.getMember()).getRoles()){
             if(this.commandPermissions.contains(role)){
@@ -160,26 +209,25 @@ public class Bot extends ListenerAdapter
                 break;
             }
         }
+        System.out.println("2");
         if(!allowed) return;
+        System.out.println("3");
 
 
 
         String command = content.split(" ")[0];
         System.out.println(command);
-
         switch(command){
             case "!purge":
                 CommandsL.purge(event);
                 break;
 
             case "!ban":
+                if(!this.db.user_exists(event.getMessage().getMentions().getMembers().get(0).getId())) {
+                    this.db.insert_new_member(event.getMessage().getMentions().getMembers().get(0).getId(),
+                            event.getGuild().getId());
+                }
                 BanMenu.create_layout(event, this.db);
-                break;
-
-            case "!stop":
-                this.on = false;
-                message.reply("Bot-ShutDown").queue();
-                message.delete().queue();
                 break;
 
             case "!unban":
@@ -196,6 +244,7 @@ public class Bot extends ListenerAdapter
 
             default:
                 message.delete().queue();
+                if (message.getContentRaw().equals("!start")) break;
                 message.reply("Command does not exits: " + message.getContentRaw().split(" ")[0]).queue();
 
                 break;

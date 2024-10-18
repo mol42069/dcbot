@@ -9,6 +9,7 @@ import java.io.IOException;
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
     public static void main(String[] args) throws IOException {
-        Bot.main(args);
+        Bot bot = new Bot();
+        bot.main(args);
         }
     }

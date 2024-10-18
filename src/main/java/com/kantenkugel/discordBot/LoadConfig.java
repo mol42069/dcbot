@@ -25,8 +25,6 @@ public class LoadConfig {
         // insert the ban_menu_options as well as punishments
         // this will only happen if this server does not have a ban_menu config.
 
-
-
         return db;
     }
 

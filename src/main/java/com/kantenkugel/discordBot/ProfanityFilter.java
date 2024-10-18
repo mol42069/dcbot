@@ -40,8 +40,9 @@ public class ProfanityFilter {
 
     public static void timeout_user(Message message, DatabaseConnection db){
         int duration = 30;
+        System.out.println(message.getId());
         db.give_user_punishment(message.getGuildId().toString(), duration, message.getAuthor().getId(),
-                message.getChannelId(), "ProfanityFilter_timeout", message.getContentRaw());
+                message.getChannelId(), "ProfanityFilter_timeout", message.getId());
 
         Guild guild = message.getGuild();
 

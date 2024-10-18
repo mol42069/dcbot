@@ -197,7 +197,7 @@ public class DatabaseConnection {
 
     }
 
-    public void insert_into_log(String guild_id, String member_id, String channel_id, String message_id){
+    public void insert_into_log(String guild_id, String member_id, String channel_id, String message_id, String message){
         // not needed because timestamp is behind the message -> it will just result in an error,
         // but we wouldn't log the message so we want to run it anyway.
         message_id = save_for_sql_message(message_id);
@@ -209,9 +209,9 @@ public class DatabaseConnection {
             java.util.Date date = new java.util.Date();
             java.sql.Timestamp timestamp = new java.sql.Timestamp(date.getTime());
 
-            String query = "INSERT INTO user_log(user_id, server_id, channel_id, message, message_date) VALUES" +
-                    "( + '" + member_id + "', '" + guild_id + "', '" + channel_id + "', '" + message_id + "', '" +
-                    timestamp + "')";
+            String query = "INSERT INTO user_log(user_id, server_id, channel_id, message, message_id, message_date) VALUES" +
+                    "( + '" + member_id + "', '" + guild_id + "', '" + channel_id + "', '" + message + "', '" +
+                     message_id + "', '" + timestamp + "')";
 
             statement.executeUpdate(query);
 
@@ -225,25 +225,27 @@ public class DatabaseConnection {
 
     // TODO: we need to add this function or the one below wherever a punishment is given so we can log it
     public void give_user_punishment(String server_id, int duration, String user_id, String channel_id, String reason, String message_id){
-
+        // mainly for profanity filter
         try {
             Statement statement = this.connection.createStatement();
             message_id = save_for_sql_message(message_id);
             // first we add the server to the db
-            String query = "INSERT INTO user_punishment (user_id, server_id, reason, message_id, duration) " +
+            String query = "INSERT INTO user_punishment (user_id, server_id, reason, message_id, duration, punishment_id) " +
                     "SELECT " +
                     "   ul.user_id, " +
                     "   ul.server_id, " +
                     "   '" + reason + "', " +
                     "   ul.id, " +
-                    "   " + duration + " " +
+                    "   " + duration + ", " +
+                    " 3 " +
                     "FROM " +
                     "   user_log ul " +
                     "WHERE " +
                     "   ul.server_id = '" + server_id + "' " +
                     "   AND ul.user_id = '" + user_id + "' " +
-                    "   AND ul.message = '" + message_id + "' " +
+                    "   AND ul.message_id = '" + message_id + "' " +
                     "   AND ul.channel_id = '" + channel_id + "';";
+
             statement.executeUpdate(query);
 
         } catch (SQLException e) {
@@ -251,6 +253,32 @@ public class DatabaseConnection {
         }
 
     }
+
+    public void give_user_punishment(String server_id, int duration, String user_id, String reason, int punishment_id){
+
+        try {
+            Statement statement = this.connection.createStatement();
+            reason = save_for_sql_message(reason);
+            // first we add the server to the db
+            String query = "INSERT INTO user_punishment (user_id, server_id, reason, duration, punishment_id) VALUES( " +
+                            "'" + user_id + "'," +
+                    "        '" + server_id + "', " +
+                    "        '" + reason + "', " +
+                    "         " + duration + ", " +
+                                 punishment_id +
+                    " )";
+
+
+                    ;
+            statement.executeUpdate(query);
+
+        } catch (SQLException e) {
+            System.out.println(ANSI_RED + e.getMessage() + ANSI_RESET);
+        }
+
+    }
+
+
     public void give_user_punishment(String server_id, String user_id, String reason){
 
         try {
