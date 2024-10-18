@@ -13,13 +13,12 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
-
 import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
 
 public class ProfanityFilter {
 
-    public static void filter(HashSet<String> profanities, Message message, TextChannel mod_text_channel){
+    public static void filter(HashSet<String> profanities, Message message, TextChannel mod_text_channel,  DatabaseConnection db){
 
         String[] tempMessage = message.getContentRaw().split(" ");
 
@@ -27,8 +26,8 @@ public class ProfanityFilter {
 
             if (profanities.contains(s)) {
                 message.delete().queue();
-
-                createDeletedMsgEmbed(message, mod_text_channel, s);
+                timeout_user(message, db);
+                //createDeletedMsgEmbed(message, mod_text_channel, s);
                 System.out.println(message);
 
                 return;
@@ -36,6 +35,40 @@ public class ProfanityFilter {
 
         }
 
+    }
+
+
+    public static void timeout_user(Message message, DatabaseConnection db){
+        int duration = 30;
+        db.give_user_punishment(message.getGuildId().toString(), duration, message.getAuthor().getId(),
+                message.getChannelId(), "ProfanityFilter_timeout", message.getContentRaw());
+
+        Guild guild = message.getGuild();
+
+        guild.timeoutFor(message.getAuthor(), duration, TimeUnit.SECONDS)
+                .reason("ProfanityFilter_timeout")
+                .queue();
+
+
+        System.out.println("timedout user: " + message.getAuthor().getId() + " | reason: " + "ProfanityFilter_timeout"
+                + " | duration:  " + duration + " seconds");
+
+        EmbedBuilder embedBuilder = new EmbedBuilder();
+        // Set the title of the embed
+        embedBuilder.setTitle("TimedOut User: " + message.getAuthor().getEffectiveName());
+
+        // Set the description of the embed
+
+        // Set other properties as needed
+        embedBuilder.setColor(0xFFD700); // Set the color to gold
+        embedBuilder.addField("USER:", message.getAuthor().getEffectiveName(), true); // Add a field with inline formatting
+        embedBuilder.addField("USERID: ", message.getAuthor().getId(), true);
+        embedBuilder.addField("REASON: ", "ProfanityFilter_timeout", false);
+        embedBuilder.addField("DURATION: ", duration + "s", false);
+
+        // Build the embed object
+
+        message.getChannel().sendMessageEmbeds(embedBuilder.build()).queue();
     }
 
     public static void createDeletedMsgEmbed(Message message, TextChannel mod_text_channel, String reason){

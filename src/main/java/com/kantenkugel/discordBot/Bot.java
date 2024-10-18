@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -69,11 +70,13 @@ public class Bot extends ListenerAdapter
         Guild tguild = event.getGuild();
 
         if (this.db != null){
-
-            // if needed create a new user
+            if(!db.server_exists(tguild.getId())){
+                db.insert_new_server(tguild.getId());
+            }
+            // if needed to create a new user
             if (!db.user_exists(Objects.requireNonNull(message.getMember()).getId())){
                 db.insert_new_member(Objects.requireNonNull(message.getMember()).getId(), tguild.getId());
-            } // if needed create a new user-server relation
+            } // if needed to create a new user-server relation
             else if (!db.user_server_exists(Objects.requireNonNull(message.getMember()).getId(), tguild.getId())){
                 db.insert_member_in_server(Objects.requireNonNull(message.getMember()).getId(), tguild.getId());
             }
@@ -91,7 +94,7 @@ public class Bot extends ListenerAdapter
 
             // if we don't have a prefix we look that there is no profanity in the message
 
-            if(this.on) ProfanityFilter.filter(profanities, message, this.mod_text_channel);
+            if(this.on) ProfanityFilter.filter(profanities, message, this.mod_text_channel, this.db);
 
             return;
         }
@@ -129,9 +132,23 @@ public class Bot extends ListenerAdapter
             message.reply("Bot-Started").queue();
             return;
 
-        }else if(!this.on){
+        }else if(!this.on) {
             message.delete().queue();
             return;
+
+        }else if (content.equals("!start") && this.db != null){
+            LoadConfig.load_for_server(tguild, this.db);
+
+        }else if(content.equals("!get_messages")){
+
+            System.out.println("get_messages");
+            ArrayList<String[]> user_log = this.db.get_log_for_user(Objects.requireNonNull(message.getMember()).getId(), tguild.getId());
+            for (int i = 0; i < user_log.size(); i++){
+                System.out.println(Arrays.toString(user_log.get(i)));
+            }
+
+
+
         }
 
 
@@ -156,7 +173,7 @@ public class Bot extends ListenerAdapter
                 break;
 
             case "!ban":
-                BanMenu.create_layout(event);
+                BanMenu.create_layout(event, this.db);
                 break;
 
             case "!stop":

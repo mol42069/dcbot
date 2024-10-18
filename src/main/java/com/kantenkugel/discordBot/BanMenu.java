@@ -15,7 +15,9 @@ import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.requests.restaction.ChannelAction;
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
 
@@ -73,6 +75,87 @@ public class BanMenu {
 
 
                 .queue();
+
+        event.getMessage().delete().queue();
+
+
+    }
+
+    public static void create_layout(MessageReceivedEvent event, DatabaseConnection db){
+        Guild guild = event.getGuild();
+        String channelName = event.getChannel().getName();
+
+        TextChannel existingChannel = guild.getTextChannelsByName(channelName, true).stream().findFirst().orElse(null);
+        int channelPosition = existingChannel.getPositionRaw();
+        channelName += "-mod";
+
+        String categoryName = existingChannel.getParentCategory() != null ? existingChannel.getParentCategory().getName() : null;
+
+
+        ChannelAction<TextChannel> channelAction = guild.createTextChannel(channelName);
+
+
+        // Set the category for the new channel (if the existing channel was in a category)
+        channelAction.setPosition(channelPosition);
+
+        if (categoryName != null) {
+            channelAction.setParent(guild.getCategoriesByName(categoryName, true).get(0));
+        }
+
+        EnumSet<Permission> permissions = EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND);
+        channelAction
+                .addPermissionOverride(event.getMember(), permissions, null) // grant access to the user
+                .addPermissionOverride(guild.getPublicRole(), null, permissions) // deny access to @everyone.addPermissionOverride(event.getMember())
+                .addPermissionOverride(guild.getRolesByName("Besserer-Mensch", false).get(0), permissions, null);
+
+
+        // Complete the channel creation and update the guild
+        channelAction.complete();
+
+        System.out.println(guild.getTextChannelsByName(channelName, true).get(0));
+
+        MessageCreateAction menu =  guild.getTextChannelsByName(channelName, false).get(0)
+                .sendMessage("User: " + event.getMessage().getMentions().getUsers().get(0).getEffectiveName() + " \n" +
+                        "UserId: " + event.getMessage().getMentions().getUsers().get(0).getId() + " \n" +
+                        "ChannelID: " + event.getChannel().getId()
+                );
+
+        ArrayList<Integer> punishments_ids = db.get_ban_menu_options(guild.getId());
+
+        System.out.println(punishments_ids.toString());
+
+        for (int id = 1; id < punishments_ids.size(); id++) {
+            /*.addActionRow(
+                Button.primary("userMenu-mute", "MUTE"), // Button with only a label
+                Button.success("userMenu-timeout", "TIMEOUT")) // Button with only an emoji
+*/
+            ArrayList<String[]> details1 = db.get_ban_menu_details(id);
+
+            if(punishments_ids.size() < id +1){
+
+                menu.addActionRow(
+                        Button.primary("userMenu-" + details1.get(0)[0], details1.get(0)[0].toUpperCase())
+                );
+
+            }else{
+                id++;
+                ArrayList<String[]> details2 = db.get_ban_menu_details(id);
+                menu.addActionRow(
+                        Button.primary("userMenu-" + details1.get(0)[0].toLowerCase(),
+                                details1.get(0)[0].toUpperCase()),
+                        Button.success("userMenu-" + details2.get(0)[0].toLowerCase(),
+                                details2.get(0)[0].toUpperCase())
+                );
+            }
+
+
+        }
+
+        menu.addActionRow(
+                Button.secondary("userMenu-cancel", "CANCEL")
+        );
+
+        menu.queue();
 
         event.getMessage().delete().queue();
 
