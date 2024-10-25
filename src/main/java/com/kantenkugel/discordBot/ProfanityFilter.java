@@ -18,6 +18,10 @@ import java.util.concurrent.TimeUnit;
 
 public class ProfanityFilter {
 
+    public static final String ANSI_RED = "\u001B[31m";
+    public static final String ANSI_YELLOW = "\u001B[33m";
+    public static final String ANSI_GREEN = "\u001B[32m";
+    public static final String ANSI_RESET = "\u001B[0m";
     public static void filter(HashSet<String> profanities, Message message, TextChannel mod_text_channel,  DatabaseConnection db){
 
         String[] tempMessage = message.getContentRaw().split(" ");
@@ -51,8 +55,8 @@ public class ProfanityFilter {
                 .queue();
 
 
-        System.out.println("timedout user: " + message.getAuthor().getId() + " | reason: " + "ProfanityFilter_timeout"
-                + " | duration:  " + duration + " seconds");
+        System.out.println(ANSI_YELLOW + "timedout user: " + message.getAuthor().getId() + " | reason: " + "ProfanityFilter_timeout"
+                + " | duration:  " + duration + " seconds" + ANSI_RESET);
 
         EmbedBuilder embedBuilder = new EmbedBuilder();
         // Set the title of the embed

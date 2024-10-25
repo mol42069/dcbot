@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.cache.CacheFlag;
 
 import java.io.*;
 import java.util.*;
@@ -46,7 +47,8 @@ public class Bot extends ListenerAdapter
         JDA jda = JDABuilder.createDefault(token)
                 .enableIntents(GatewayIntent.MESSAGE_CONTENT) // enables explicit access to message.getContentDisplay()
                 .enableIntents(GatewayIntent.AUTO_MODERATION_CONFIGURATION)
-                .enableIntents(GatewayIntent.GUILD_MEMBERS)
+                .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES)
+                .enableCache(CacheFlag.MEMBER_OVERRIDES)
                 .build();
         // You can also add event listeners to the already built JDA instance
         // Note that some events may not be received if the listener is added after calling build()
@@ -126,7 +128,8 @@ public class Bot extends ListenerAdapter
             }
             // if needed to create a new user
             if (!db.user_exists(Objects.requireNonNull(message.getMember()).getId())){
-                db.insert_new_member(Objects.requireNonNull(message.getMember()).getId(), tguild.getId());
+                db.insert_new_member(Objects.requireNonNull(message.getMember()).getId(), tguild.getId(),
+                        message.getMember().getUser().getName());
             } // if needed to create a new user-server relation
             else if (!db.user_server_exists(Objects.requireNonNull(message.getMember()).getId(), tguild.getId())){
                 db.insert_member_in_server(Objects.requireNonNull(message.getMember()).getId(), tguild.getId());
@@ -191,6 +194,23 @@ public class Bot extends ListenerAdapter
             this.commandPermissions.add(message.getGuild()
                     .getRolesByName("Besserer-Mensch", true).get(0));
 
+            List<Member> member_list = new ArrayList<>();
+
+            event.getGuild().loadMembers().onSuccess(members -> {
+
+                for (Member member : members) {
+                    if(!this.db.user_exists(member.getId())){
+                        System.out.println("Member: " +member.getUser().getName());
+                        this.db.insert_new_member(member.getId(), event.getGuild().getId(),
+                                member.getUser().getName());
+                    }
+
+                }
+
+            });
+
+            System.out.println("Members : " + member_list.size() + ";");
+
             LoadConfig.load_for_server(tguild, this.db);
 
         }else if(content.equals("!get_messages")){
@@ -201,7 +221,6 @@ public class Bot extends ListenerAdapter
                 System.out.println(Arrays.toString(user_log.get(i)));
             }
         }
-        System.out.println("1");
         boolean allowed = false;
         for(Role role : Objects.requireNonNull(message.getMember()).getRoles()){
             if(this.commandPermissions.contains(role)){
@@ -209,9 +228,7 @@ public class Bot extends ListenerAdapter
                 break;
             }
         }
-        System.out.println("2");
         if(!allowed) return;
-        System.out.println("3");
 
 
 
@@ -225,7 +242,7 @@ public class Bot extends ListenerAdapter
             case "!ban":
                 if(!this.db.user_exists(event.getMessage().getMentions().getMembers().get(0).getId())) {
                     this.db.insert_new_member(event.getMessage().getMentions().getMembers().get(0).getId(),
-                            event.getGuild().getId());
+                            event.getGuild().getId(), Objects.requireNonNull(event.getMember()).getUser().getName());
                 }
                 BanMenu.create_layout(event, this.db);
                 break;

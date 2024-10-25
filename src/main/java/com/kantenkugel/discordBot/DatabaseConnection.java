@@ -42,7 +42,9 @@ public class DatabaseConnection {
     }
 
     public String save_for_sql_message(String message){
+        if (message == null) return null;
         StringBuilder result = new StringBuilder(message);
+
         for (int i = 0; i < message.length(); i++) {
 
             if(message.charAt(i) == "'".toCharArray()[0]){
@@ -160,13 +162,14 @@ public class DatabaseConnection {
         }
     }
     // only call this when this member isn't int the guild
-    public void insert_new_member(String member_id, String guild_id){
-
+    public void insert_new_member(String member_id, String guild_id, String name){
+            name = this.save_for_sql_message(name);
         try{
             Statement statement = this.connection.createStatement();
 
-            String query = "INSERT INTO users(id) VALUES" +
-                    "("+ member_id + ")";
+            String query = "INSERT INTO users(id, name) VALUES" +
+                    "("+ member_id + ", '" +
+                        name + "')";
 
             statement.executeUpdate(query);
 
